@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"strconv"
 	"fmt"
 	"github.com/dustin/go-humanize"
 	_ "github.com/go-sql-driver/mysql"
@@ -33,24 +34,29 @@ func dbConnect(dns string) {
 
 func prepareStatements() {
 	var err error
-	stmtTableSize, err = db.Prepare(`SELECT 
-		CONCAT(FORMAT(DAT/POWER(1024,pw1),2),' ',SUBSTR(units,pw1*2+1,2)) DATSIZE,
-		CONCAT(FORMAT(NDX/POWER(1024,pw2),2),' ',SUBSTR(units,pw2*2+1,2)) NDXSIZE,
-		CONCAT(FORMAT(TBL/POWER(1024,pw3),2),' ',SUBSTR(units,pw3*2+1,2)) TBLSIZE
-	FROM
-	(
-		SELECT DAT,NDX,TBL,IF(px>4,4,px) pw1,IF(py>4,4,py) pw2,IF(pz>4,4,pz) pw3
-		FROM 
-		(
-			SELECT data_length DAT,index_length NDX,data_length+index_length TBL,
-			FLOOR(LOG(IF(data_length=0,1,data_length))/LOG(1024)) px,
-			FLOOR(LOG(IF(index_length=0,1,index_length))/LOG(1024)) py,
-			FLOOR(LOG(IF(data_length+index_length=0,1,data_length+index_length))/LOG(1024)) pz
-			FROM information_schema.tables
-			WHERE table_schema=?
-			AND table_name=?
-		) AA
-	) A,(SELECT 'B KBMBGBTB' units) B`)
+	//stmtTableSize, err = db.Prepare(`SELECT 
+	//	CONCAT(FORMAT(DAT/POWER(1024,pw1),2),' ',SUBSTR(units,pw1*2+1,2)) DATSIZE,
+	//	CONCAT(FORMAT(NDX/POWER(1024,pw2),2),' ',SUBSTR(units,pw2*2+1,2)) NDXSIZE,
+	//	CONCAT(FORMAT(TBL/POWER(1024,pw3),2),' ',SUBSTR(units,pw3*2+1,2)) TBLSIZE
+	//FROM
+	//(
+	//	SELECT DAT,NDX,TBL,IF(px>4,4,px) pw1,IF(py>4,4,py) pw2,IF(pz>4,4,pz) pw3
+	//	FROM 
+	//	(
+	//		SELECT data_length DAT,index_length NDX,data_length+index_length TBL,
+	//		FLOOR(LOG(IF(data_length=0,1,data_length))/LOG(1024)) px,
+	//		FLOOR(LOG(IF(index_length=0,1,index_length))/LOG(1024)) py,
+	//		FLOOR(LOG(IF(data_length+index_length=0,1,data_length+index_length))/LOG(1024)) pz
+	//		FROM information_schema.tables
+	//		WHERE table_schema=?
+	//		AND table_name=?
+	//	) AA
+	//) A,(SELECT 'B KBMBGBTB' units) B`)
+
+	stmtTableSize, err = db.Prepare(`SELECT (data_length+index_length) tablesize
+		FROM information_schema.tables
+		WHERE table_schema=? and table_name=?
+	`)
 
 	if err != nil {
 		log.Fatal(err)
@@ -114,21 +120,24 @@ func tableGrowth(table, dateColumn, groupBy string, since, to time.Time) []*Poin
 	return data
 }
 
-func tableSize(database, table string) {
-	var (
-		dataSize  string
-		indexSize string
-		tableSize string
-	)
+func tableSize(database, table string) float64 {
+	//var (
+	//	dataSize  string
+	//	indexSize string
+	//)
+	var size string
 
-	err := stmtTableSize.QueryRow(database, table).Scan(&dataSize, &indexSize, &tableSize)
+	err := stmtTableSize.QueryRow(database, table).Scan(&size)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	//fmt.Printf("Database: %s, Table: %s\n", database, table)
-	fmt.Printf("DataSize: %s, IndexSize: %s, TableSize: %s\n", dataSize, indexSize, tableSize)
+	//fmt.Printf("DataSize: %s, IndexSize: %s, TableSize: %s\n", dataSize, indexSize, tableSize)
+	//fmt.Printf("TableSize: %s\n", humanize.Bytes(tableSize))
+	f64, _ := strconv.ParseFloat(size, 0)
+	return f64
 }
 
 func tablesAvailable(database string) (tables []string) {
@@ -157,18 +166,18 @@ func tablesAvailable(database string) (tables []string) {
 	return tables
 }
 
-func tableStat(database, rawTables string) {
-	var tables []string
-
-	if rawTables == "" {
+func tableStat(database string, tables []string) []*Chart {
+	if len(tables) == 0 {
 		tables = tablesAvailable(database)
-	} else {
-		tables = parseWords(rawTables)
 	}
+
+	var data []float64
 
 	for _, table := range tables {
-		tableSize(database, table)
+		data = append(data, tableSize(database, table))
 	}
+
+	return []*Chart{BarChart("Table Size Stats", tables, data)}
 }
 
 func tableGrowthStat(database string, tables []string, dateColumns []string, groupBy string, since, to time.Time) []*Chart {

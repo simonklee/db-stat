@@ -121,23 +121,26 @@ func main() {
 	}
 
 	dbConnect(*flagDns)
+	var charts []*Chart
+
+	tables := parseWords(*flagTables)
+	dateColumns := parseWords(*flagDateColumns)
+	groupBy := parseGroupByFlag(*flagGroupBy)
+	since := parseSinceFlag(*flagSinceDate)
+	to := parseToFlag(*flagToDate)
 
 	if *flagGrowth {
-		tables := parseWords(*flagTables)
-		dateColumns := parseWords(*flagDateColumns)
-		groupBy := parseGroupByFlag(*flagGroupBy)
-		since := parseSinceFlag(*flagSinceDate)
-		to := parseToFlag(*flagToDate)
-		charts := tableGrowthStat(*flagDatabase, tables, dateColumns, groupBy, since, to)
-		outputTypes := parseOutputFlag(*flagOutput)
-
-		for _, c := range charts {
-			for _, t := range outputTypes {
-				c.Write(t)
-			}
-		}
+		charts = tableGrowthStat(*flagDatabase, tables, dateColumns, groupBy, since, to)
 	} else {
-		tableStat(*flagDatabase, *flagTables)
+		charts = tableStat(*flagDatabase, tables)
+	}
+
+	outputTypes := parseOutputFlag(*flagOutput)
+
+	for _, c := range charts {
+		for _, t := range outputTypes {
+			c.Write(t)
+		}
 	}
 
 	defer db.Close()
