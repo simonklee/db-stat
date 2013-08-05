@@ -1,10 +1,12 @@
 package main
 
 import (
-	"strings"
 	"database/sql"
+	"strings"
 	"fmt"
 	"log"
+	"time"
+	"github.com/dustin/go-humanize"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -69,11 +71,16 @@ func prepareStatements() {
 	}
 }
 
-func tableGrowth(table, datetimeColumn string) {
+func tableGrowth(table, dateColumn, groupBy string, since, to time.Time) []*Point {
+	if groupBy == "DAY" {
+		groupBy = "DATE"
+	}
+
 	stmt := fmt.Sprintf(`SELECT DATE(%s), COUNT(*) AS Count 
 	FROM %s 
-	GROUP BY DATE(%s)`, datetimeColumn, table, datetimeColumn)
-	rows, err := db.Query(stmt)
+	WHERE %s >= ? AND %s <= ?
+	GROUP BY %s(%s)`, dateColumn, table, dateColumn, dateColumn, groupBy, dateColumn)
+	rows, err := db.Query(stmt, since, to)
 
 	if err != nil {
 		log.Fatal(err)
@@ -84,18 +91,29 @@ func tableGrowth(table, datetimeColumn string) {
 		count int
 	)
 
+	var data []*Point 
+
 	for rows.Next() {
 		err := rows.Scan(&date, &count)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Println(date, count)
+		d, err := time.Parse("2006-01-02", date)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		data = append(data, &Point{float64(d.Unix()), float64(count)})
 	}
 	err = rows.Err()
+
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return data
 }
 
 func tableSize(database, table string) {
@@ -141,19 +159,6 @@ func tablesAvailable(database string) (tables []string) {
 	return tables
 }
 
-func parseWords(raw string) []string {
-	var words []string
-
-	for _, word := range strings.Split(raw, ",") {
-		word = strings.TrimSpace(word)
-
-		if word != "" {
-			words = append(words , word)
-		} 
-	}
-	return words
-}
-
 func tableStat(database, rawTables string) {
 	var tables []string
 
@@ -168,18 +173,28 @@ func tableStat(database, rawTables string) {
 	}
 }
 
-func tableGrowthStat(database, rawTables, rawColumns string) {
-	var tables []string
-	var datetimeColumns []string
-
-	tables = parseWords(rawTables)
-	datetimeColumns = parseWords(rawColumns)
-
-	if len(tables) != len(datetimeColumns) {
-		log.Fatal(fmt.Sprintf("tables count %d != datetime columns count %d", len(tables), len(datetimeColumns)))
+func tableGrowthStat(database string, tables[]string, dateColumns[]string, groupBy string, since, to time.Time) []*Chart{
+	if len(tables) != len(dateColumns) {
+		log.Fatal(fmt.Sprintf("tables count %d != datetime columns count %d", len(tables), len(dateColumns)))
 	}
+
+	charts := make([]*Chart, 0, len(tables))
 
 	for i := range tables {
-		tableGrowth(tables[i], datetimeColumns[i])
+		table := tables[i]
+		dateColumn := dateColumns[i]
+		data := tableGrowth(table, dateColumn, groupBy, since, to)
+
+		var total float64
+		for _, p := range data {
+			total += p.Y
+		}
+
+		ylabel := fmt.Sprintf("%s: Created Per %s", table, strings.Title(strings.ToLower(groupBy)))
+		xlabel := fmt.Sprintf("total in period: %s", humanize.Comma(int64(total)))
+
+		charts = append(charts, TimeChart(ylabel, xlabel, ylabel, data))
 	}
+
+	return charts
 }

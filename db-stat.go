@@ -3,23 +3,13 @@ package main
 
 import (
 	"flag"
+	"time"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
 	"runtime/pprof"
-)
-
-var (
-	help       = flag.Bool("h", false, "this help")
-	growth     = flag.Bool("growth", false, "display table growth")
-	dns		   = flag.String("dns", "kogama:kogama@tcp(localhost:3306)/kogama", "Data Source Name")
-	database   = flag.String("database", "kogama", "database name")
-	tables	   = flag.String("tables", "", "comma separated list of tables")
-	output	   = flag.String("output", "term", "specify output type. Available options svg, term")
-	datetimeColumns	= flag.String("datetimeColumns", "", "comma separated list of datetimeColumns")
-	version    = flag.Bool("v", false, "show version and exit")
-	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	"strings"
 )
 
 func usage() {
@@ -28,24 +18,102 @@ func usage() {
 	flag.PrintDefaults()
 }
 
+func parseSinceFlag(v string) time.Time {
+	d, err := time.Parse("2006-01-02", v)
+
+	if err != nil {
+		d = time.Unix(0, 0).UTC()
+	}
+
+	return d
+}
+
+func parseToFlag(v string) time.Time {
+	d, err := time.Parse("2006-01-02", v)
+
+	if err != nil {
+		d = time.Now().UTC()
+	}
+
+	return d
+}
+
+func parseOutputFlag(v string) []outputType {
+	words := parseWords(v)
+	out := make([]outputType, 0, len(words))
+
+	for _, w := range words {
+		w = strings.ToUpper(w)	
+
+		switch w {
+		case "TERM":
+			out = append(out, termOutput)
+		case "PNG":
+			out = append(out, imageOutput)
+		default:
+			flag.Usage()
+			os.Exit(1)
+		}
+	} 
+
+	return out
+}
+
+func parseGroupByFlag(v string) string {
+	out := strings.ToUpper(v)
+
+	if !stringInSlice(out, []string{"DAY", "WEEK", "MONTH", "YEAR"}) {
+		flag.Usage()
+		os.Exit(1)
+	}
+	return out
+}
+
+func parseWords(raw string) []string {
+	var words []string
+
+	for _, word := range strings.Split(raw, ",") {
+		word = strings.TrimSpace(word)
+
+		if word != "" {
+			words = append(words , word)
+		} 
+	}
+	return words
+}
+
 func main() {
+	var (
+		flagHelp       = flag.Bool("h", false, "this help")
+		flagGrowth     = flag.Bool("growth", false, "display table growth")
+		flagDns		   = flag.String("dns", "kogama:kogama@tcp(localhost:3306)/kogama", "Data Source Name")
+		flagDatabase   = flag.String("database", "kogama", "database name")
+		flagTables	   = flag.String("tables", "", "comma separated list of tables")
+		flagOutput	   = flag.String("output", "term", "comma separated list of output types. Options; png, term")
+		flagDateColumns	= flag.String("dateColumns", "", "comma separated list of dateColumns")
+		flagSinceDate  = flag.String("since", "", "limit queries from this date")
+		flagToDate  = flag.String("to", "", "limit queries to this date")
+		flagGroupBy    = flag.String("groupBy", "DAY", "DAY|WEEK|MONTH|YEAR")
+		flagVersion    = flag.Bool("v", false, "show version and exit")
+		flagCpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+	)
 	flag.Usage = usage
 	flag.Parse()
 
-	if *version {
+	if *flagVersion {
 		fmt.Fprintln(os.Stderr, "0.0.1")
 		return
 	}
 
-	if *help {
+	if *flagHelp {
 		flag.Usage()
 		os.Exit(1)
 	}
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
+	if *flagCpuprofile != "" {
+		f, err := os.Create(*flagCpuprofile)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -53,14 +121,24 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
-	dbConnect(*dns)
-	plot()
-	return
+	dbConnect(*flagDns)
 
-	if *growth {
-		tableGrowthStat(*database, *tables, *datetimeColumns)
+	if *flagGrowth {
+		tables := parseWords(*flagTables)
+		dateColumns := parseWords(*flagDateColumns)
+		groupBy := parseGroupByFlag(*flagGroupBy)
+		since := parseSinceFlag(*flagSinceDate)
+		to := parseToFlag(*flagToDate)
+		charts := tableGrowthStat(*flagDatabase, tables, dateColumns, groupBy, since, to)
+		outputTypes := parseOutputFlag(*flagOutput)
+
+		for _, c := range charts {
+			for _, t := range outputTypes {
+				c.Write(t)
+			}
+		}
 	} else {
-		tableStat(*database, *tables)
+		tableStat(*flagDatabase, *flagTables)
 	}
 
 	defer db.Close()

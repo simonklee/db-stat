@@ -1,46 +1,95 @@
 package main
 
 import (
-	"bytes"
-	//"github.com/simonz05/go-gnuplot"
-	"fmt"
-	//"github.com/vdobler/chart"
-	//"github.com/vdobler/chart/txtg"
+	"image"
+	"image/draw"
+	"image/color"
+	"image/png"
+	"github.com/vdobler/chart"
+	"github.com/vdobler/chart/txtg"
+	"github.com/vdobler/chart/imgg"
 	"os"
+	"path"
 )
 
-// PlotX will create a 2-d plot using `data` as input and `title` as the plot
-// title.
-// The index of the element in the `data` slice will be used as the x-coordinate
-// and its correspinding value as the y-coordinate.
-// Example:
-//  err = p.PlotX([]float64{10, 20, 30}, "my title")
-func PlotX(data []float64, title string) error {
-	var buf bytes.Buffer
-	for _, d := range data {
-		buf.WriteString(fmt.Sprintf("%v\n", d))
+type ChartWriter interface {
+	Write(chart.Chart)
+}
+
+func point2Chart(in []*Point) []chart.XYErrValue {
+	out := make([]chart.XYErrValue, 0, len(in))
+
+	for _, v := range in {
+		out = append(out, v)
 	}
 
-	fmt.Fprintf(os.Stdout, "%s", buf.String())
-	//cmd = "replot"
-
-	//var line string
-	//if title == "" {
-	//	line = fmt.Sprintf("%s \"%s\" with %s", cmd, fname, self.style)
-	//} else {
-	//	line = fmt.Sprintf("%s \"%s\" title \"%s\" with %s",
-	//		cmd, fname, title, self.style)
-	//}
-	return nil
+	return out
 }
-func plot() {
-	fmt.Fprintf(os.Stdout, "set terminal 'dumb';")
-	fmt.Fprintf(os.Stdout, "plot \"-\" using 1:2 notitle with lines;")
-    PlotX([]float64{0,1,2,3,4,5,6,7,8,9,10}, "some data")
 
-    //p.CheckedCmd("set terminal pdf")
-    //p.CheckedCmd("set output 'plot002.pdf'")
-    //p.CheckedCmd("replot")
-    //p.CheckedCmd("q")
-    return
+type outputType int
+
+const (
+    termOutput    outputType = iota 
+    imageOutput                      
+)
+
+type Chart struct {
+	c chart.Chart
+	name string
+}
+
+func (c *Chart) ImageWrite() {
+	os.MkdirAll("data", os.ModePerm)
+
+	fp, err := os.Create(path.Join("data", c.name+".png"))
+	if err != nil {
+		panic(err)
+	}
+	defer fp.Close()
+
+	img := image.NewRGBA(image.Rect(0, 0, 1024, 768))
+	bg := image.NewUniform(color.RGBA{0xff, 0xff, 0xff, 0xff})
+	draw.Draw(img, img.Bounds(), bg, image.ZP, draw.Src)
+
+	//row, col := d.Cnt/d.N, d.Cnt%d.N
+	igr := imgg.AddTo(img, 0, 0, 1024, 768, color.RGBA{0xff, 0xff, 0xff, 0xff}, nil, nil)
+	c.c.Plot(igr)
+
+	png.Encode(fp, img)
+}
+
+func (c *Chart) TermWrite() {
+	tgr := txtg.New(100, 40)
+	c.c.Plot(tgr)
+	os.Stdout.Write([]byte(tgr.String() + "\n\n\n"))
+}
+
+func (c *Chart) Write(t outputType) {
+	switch t {
+	case termOutput:
+		c.TermWrite()
+	case imageOutput:
+		c.ImageWrite()
+	default:
+	}
+}
+
+func TimeChart(title, xlabel, ylabel string, data []*Point) *Chart {
+	c := &chart.ScatterChart{Title: title}
+	c.XRange.Label = xlabel
+	c.YRange.Label = ylabel
+	c.XRange.Time = true
+	c.XRange.TicSetting.Mirror = 1
+
+	//style := chart.Style{
+	//	Symbol: '+', 
+	//	SymbolColor: color.NRGBA{0x00, 0x00, 0xff, 0xff}, 
+	//	LineStyle: chart.SolidLine}
+	style := chart.AutoStyle(4, true)
+	c.AddDataGeneric(ylabel, point2Chart(data), chart.PlotStyleLinesPoints, style)
+
+	return &Chart{
+		c: c,
+		name: safeFilename(title+" time chart"),
+	}
 }
