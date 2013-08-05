@@ -167,9 +167,30 @@ func tableSize(database, table string) *TableSize {
 	}
 }
 
-func tableStat(database string, tables []string, cutoff int) []*Chart {
+func tableStat(database string, tables, ignoreTables []string, cutoff int) []*Chart {
 	if len(tables) == 0 {
 		tables = tablesAvailable(database)
+
+		if len(ignoreTables) > 0 {
+			// remove the ignored tables from the slice of tables
+			last := len(tables)-1
+
+			for i := 0; i < last + 1; i++ {
+				table := tables[i]
+
+				if stringInSlice(table, ignoreTables) {
+					if i == last {
+						last -= 1
+					} else {
+						// overwrite the current index
+						tables[i] = tables[last]
+						last -= 1
+						i -= 1
+					}
+				}
+			}
+			tables = tables[0:last+1]
+		}
 	}
 
 	var data []*TableSize

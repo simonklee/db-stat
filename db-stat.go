@@ -88,6 +88,7 @@ func main() {
 		flagDns         = flag.String("dns", "kogama:kogama@tcp(localhost:3306)/kogama", "Data Source Name")
 		flagDatabase    = flag.String("database", "kogama", "database name")
 		flagTables      = flag.String("tables", "", "comma separated list of tables")
+		flagIgnoreTables= flag.String("ignore-tables", "", "comma separated list of tables to not consider")
 		flagOutput      = flag.String("output", "term", "comma separated list of output types. Options; png, term")
 		flagDateColumns = flag.String("dateColumns", "", "comma separated list of dateColumns")
 		flagSinceDate   = flag.String("since", "", "limit queries from this date")
@@ -97,6 +98,7 @@ func main() {
 		flagVersion     = flag.Bool("v", false, "show version and exit")
 		flagCpuprofile  = flag.String("cpuprofile", "", "write cpu profile to file")
 	)
+
 	flag.Usage = usage
 	flag.Parse()
 
@@ -125,6 +127,7 @@ func main() {
 	var charts []*Chart
 
 	tables := parseWords(*flagTables)
+	ignoreTables := parseWords(*flagIgnoreTables)
 	dateColumns := parseWords(*flagDateColumns)
 	groupBy := parseGroupByFlag(*flagGroupBy)
 	since := parseSinceFlag(*flagSinceDate)
@@ -133,7 +136,7 @@ func main() {
 	if *flagGrowth {
 		charts = tableGrowthStat(*flagDatabase, tables, dateColumns, groupBy, since, to)
 	} else {
-		charts = tableStat(*flagDatabase, tables, *flagCutoff)
+		charts = tableStat(*flagDatabase, tables, ignoreTables, *flagCutoff)
 	}
 
 	outputTypes := parseOutputFlag(*flagOutput)
