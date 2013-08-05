@@ -2,13 +2,14 @@ package main
 
 import (
 	"database/sql"
-	"strconv"
 	"fmt"
-	"github.com/dustin/go-humanize"
-	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"strings"
 	"time"
+	"sort"
+
+	"github.com/dustin/go-humanize"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 var (
@@ -53,7 +54,7 @@ func prepareStatements() {
 	//	) AA
 	//) A,(SELECT 'B KBMBGBTB' units) B`)
 
-	stmtTableSize, err = db.Prepare(`SELECT (data_length+index_length) tablesize
+	stmtTableSize, err = db.Prepare(`SELECT data_length, index_length
 		FROM information_schema.tables
 		WHERE table_schema=? and table_name=?
 	`)
@@ -120,26 +121,6 @@ func tableGrowth(table, dateColumn, groupBy string, since, to time.Time) []*Poin
 	return data
 }
 
-func tableSize(database, table string) float64 {
-	//var (
-	//	dataSize  string
-	//	indexSize string
-	//)
-	var size string
-
-	err := stmtTableSize.QueryRow(database, table).Scan(&size)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//fmt.Printf("Database: %s, Table: %s\n", database, table)
-	//fmt.Printf("DataSize: %s, IndexSize: %s, TableSize: %s\n", dataSize, indexSize, tableSize)
-	//fmt.Printf("TableSize: %s\n", humanize.Bytes(tableSize))
-	f64, _ := strconv.ParseFloat(size, 0)
-	return f64
-}
-
 func tablesAvailable(database string) (tables []string) {
 	var tableName string
 
@@ -166,18 +147,63 @@ func tablesAvailable(database string) (tables []string) {
 	return tables
 }
 
-func tableStat(database string, tables []string) []*Chart {
+func tableSize(database, table string) *TableSize {
+	var (
+		dataSize  float64
+		indexSize float64
+	)
+
+	err := stmtTableSize.QueryRow(database, table).Scan(&dataSize, &indexSize)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return &TableSize{
+		Name: table,
+		Data: dataSize,
+		Index: indexSize,
+		Total: dataSize+indexSize,
+	}
+}
+
+func tableStat(database string, tables []string, cutoff int) []*Chart {
 	if len(tables) == 0 {
 		tables = tablesAvailable(database)
 	}
 
-	var data []float64
+	var data []*TableSize
 
 	for _, table := range tables {
 		data = append(data, tableSize(database, table))
 	}
 
-	return []*Chart{BarChart("Table Size Stats", tables, data)}
+	sort.Sort(sort.Reverse(ByTotal{data}))
+
+	// Merge the smallest values into an other branch if we have many results
+	if cutoff > 0 && len(data) > cutoff {
+		other := data[cutoff]
+		other.Name = "Other"
+
+		for i := cutoff+1; i < len(data); i++ {
+			other.Index += data[i].Index
+			other.Data += data[i].Data
+			other.Total += data[i].Total
+		}
+
+		data = data[0:cutoff+1]
+	}
+
+
+	vals := make([]float64, 0, len(data))
+	labels := make([]string, 0, len(data))
+	
+	for i := range data {
+		vals = append(vals, data[i].Total)
+		labels = append(labels, data[i].Name)
+	}
+
+	return []*Chart{PieChart("Table Size Overview", labels, vals)}
 }
 
 func tableGrowthStat(database string, tables []string, dateColumns []string, groupBy string, since, to time.Time) []*Chart {

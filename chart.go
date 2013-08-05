@@ -83,16 +83,27 @@ func TimeChart(title, xlabel, ylabel string, data []*Point) *Chart {
 	c.XRange.Time = true
 	c.XRange.TicSetting.Mirror = 1
 
-	//style := chart.Style{
-	//	Symbol: '+',
-	//	SymbolColor: color.NRGBA{0x00, 0x00, 0xff, 0xff},
-	//	LineStyle: chart.SolidLine}
 	style := chart.AutoStyle(4, true)
 	c.AddDataGeneric(ylabel, point2Chart(data), chart.PlotStyleLinesPoints, style)
 
 	return &Chart{
 		c:    c,
 		name: safeFilename(title + " time chart"),
+	}
+}
+
+func PieChart(title string, labels []string, data []float64) *Chart {
+	c := &chart.PieChart{Title: title}
+	c.AddDataPair("Tables", labels, data)
+
+	c.FmtVal = func (value, sum float64) (s string) {
+		return humanize.Bytes(uint64(value))
+	}
+	c.Inner = 0.3
+
+	return &Chart{
+		c:    c,
+		name: safeFilename(title + " pie chart"),
 	}
 }
 
