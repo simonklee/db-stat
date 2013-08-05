@@ -72,6 +72,7 @@ func (c *Chart) Write(t outputType) {
 	case imageOutput:
 		c.ImageWrite()
 	default:
+		panic("Invalid output type")
 	}
 }
 
