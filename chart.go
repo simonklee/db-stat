@@ -1,13 +1,13 @@
 package main
 
 import (
-	"image"
-	"image/draw"
-	"image/color"
-	"image/png"
 	"github.com/vdobler/chart"
-	"github.com/vdobler/chart/txtg"
 	"github.com/vdobler/chart/imgg"
+	"github.com/vdobler/chart/txtg"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/png"
 	"os"
 	"path"
 )
@@ -29,12 +29,12 @@ func point2Chart(in []*Point) []chart.XYErrValue {
 type outputType int
 
 const (
-    termOutput    outputType = iota 
-    imageOutput                      
+	termOutput outputType = iota
+	imageOutput
 )
 
 type Chart struct {
-	c chart.Chart
+	c    chart.Chart
 	name string
 }
 
@@ -82,14 +82,14 @@ func TimeChart(title, xlabel, ylabel string, data []*Point) *Chart {
 	c.XRange.TicSetting.Mirror = 1
 
 	//style := chart.Style{
-	//	Symbol: '+', 
-	//	SymbolColor: color.NRGBA{0x00, 0x00, 0xff, 0xff}, 
+	//	Symbol: '+',
+	//	SymbolColor: color.NRGBA{0x00, 0x00, 0xff, 0xff},
 	//	LineStyle: chart.SolidLine}
 	style := chart.AutoStyle(4, true)
 	c.AddDataGeneric(ylabel, point2Chart(data), chart.PlotStyleLinesPoints, style)
 
 	return &Chart{
-		c: c,
-		name: safeFilename(title+" time chart"),
+		c:    c,
+		name: safeFilename(title + " time chart"),
 	}
 }

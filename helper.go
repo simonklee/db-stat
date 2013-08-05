@@ -15,7 +15,7 @@ func stringInSlice(a string, list []string) bool {
 	return false
 }
 
-func safeFilename(v string) string{
+func safeFilename(v string) string {
 	v = strings.ToLower(v)
 
 	re := regexp.MustCompile("[^a-z0-9]")

@@ -2,12 +2,12 @@ package main
 
 import (
 	"database/sql"
-	"strings"
 	"fmt"
-	"log"
-	"time"
 	"github.com/dustin/go-humanize"
 	_ "github.com/go-sql-driver/mysql"
+	"log"
+	"strings"
+	"time"
 )
 
 var (
@@ -64,8 +64,6 @@ func prepareStatements() {
 		log.Fatal(err)
 	}
 
-	
-
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -87,11 +85,11 @@ func tableGrowth(table, dateColumn, groupBy string, since, to time.Time) []*Poin
 	}
 
 	var (
-		date string
+		date  string
 		count int
 	)
 
-	var data []*Point 
+	var data []*Point
 
 	for rows.Next() {
 		err := rows.Scan(&date, &count)
@@ -173,7 +171,7 @@ func tableStat(database, rawTables string) {
 	}
 }
 
-func tableGrowthStat(database string, tables[]string, dateColumns[]string, groupBy string, since, to time.Time) []*Chart{
+func tableGrowthStat(database string, tables []string, dateColumns []string, groupBy string, since, to time.Time) []*Chart {
 	if len(tables) != len(dateColumns) {
 		log.Fatal(fmt.Sprintf("tables count %d != datetime columns count %d", len(tables), len(dateColumns)))
 	}

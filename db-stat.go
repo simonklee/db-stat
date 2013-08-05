@@ -1,15 +1,14 @@
-
 package main
 
 import (
 	"flag"
-	"time"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
 	"runtime/pprof"
 	"strings"
+	"time"
 )
 
 func usage() {
@@ -43,7 +42,7 @@ func parseOutputFlag(v string) []outputType {
 	out := make([]outputType, 0, len(words))
 
 	for _, w := range words {
-		w = strings.ToUpper(w)	
+		w = strings.ToUpper(w)
 
 		switch w {
 		case "TERM":
@@ -54,7 +53,7 @@ func parseOutputFlag(v string) []outputType {
 			flag.Usage()
 			os.Exit(1)
 		}
-	} 
+	}
 
 	return out
 }
@@ -76,26 +75,26 @@ func parseWords(raw string) []string {
 		word = strings.TrimSpace(word)
 
 		if word != "" {
-			words = append(words , word)
-		} 
+			words = append(words, word)
+		}
 	}
 	return words
 }
 
 func main() {
 	var (
-		flagHelp       = flag.Bool("h", false, "this help")
-		flagGrowth     = flag.Bool("growth", false, "display table growth")
-		flagDns		   = flag.String("dns", "kogama:kogama@tcp(localhost:3306)/kogama", "Data Source Name")
-		flagDatabase   = flag.String("database", "kogama", "database name")
-		flagTables	   = flag.String("tables", "", "comma separated list of tables")
-		flagOutput	   = flag.String("output", "term", "comma separated list of output types. Options; png, term")
-		flagDateColumns	= flag.String("dateColumns", "", "comma separated list of dateColumns")
-		flagSinceDate  = flag.String("since", "", "limit queries from this date")
-		flagToDate  = flag.String("to", "", "limit queries to this date")
-		flagGroupBy    = flag.String("groupBy", "DAY", "DAY|WEEK|MONTH|YEAR")
-		flagVersion    = flag.Bool("v", false, "show version and exit")
-		flagCpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+		flagHelp        = flag.Bool("h", false, "this help")
+		flagGrowth      = flag.Bool("growth", false, "display table growth")
+		flagDns         = flag.String("dns", "kogama:kogama@tcp(localhost:3306)/kogama", "Data Source Name")
+		flagDatabase    = flag.String("database", "kogama", "database name")
+		flagTables      = flag.String("tables", "", "comma separated list of tables")
+		flagOutput      = flag.String("output", "term", "comma separated list of output types. Options; png, term")
+		flagDateColumns = flag.String("dateColumns", "", "comma separated list of dateColumns")
+		flagSinceDate   = flag.String("since", "", "limit queries from this date")
+		flagToDate      = flag.String("to", "", "limit queries to this date")
+		flagGroupBy     = flag.String("groupBy", "DAY", "DAY|WEEK|MONTH|YEAR")
+		flagVersion     = flag.Bool("v", false, "show version and exit")
+		flagCpuprofile  = flag.String("cpuprofile", "", "write cpu profile to file")
 	)
 	flag.Usage = usage
 	flag.Parse()
