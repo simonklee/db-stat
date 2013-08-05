@@ -27,8 +27,8 @@ func safeFilename(v string) string {
 }
 
 func percentile(data []float64, p float64) float64 {
-	i := int(p * float64(len(data)) + 0.5)
-    return data[i-1]
+	i := int(p*float64(len(data)) + 0.5)
+	return data[i-1]
 }
 
 func data2Percentage(data []float64) []float64 {
@@ -45,4 +45,3 @@ func data2Percentage(data []float64) []float64 {
 	}
 	return out
 }
-

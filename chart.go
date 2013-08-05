@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/dustin/go-humanize"
 	"github.com/vdobler/chart"
 	"github.com/vdobler/chart/imgg"
@@ -96,7 +95,7 @@ func PieChart(title string, labels []string, data []float64) *Chart {
 	c := &chart.PieChart{Title: title}
 	c.AddDataPair("Tables", labels, data)
 
-	c.FmtVal = func (value, sum float64) (s string) {
+	c.FmtVal = func(value, sum float64) (s string) {
 		return humanize.Bytes(uint64(value))
 	}
 	c.Inner = 0.3
@@ -104,60 +103,5 @@ func PieChart(title string, labels []string, data []float64) *Chart {
 	return &Chart{
 		c:    c,
 		name: safeFilename(title + " pie chart"),
-	}
-}
-
-func BarChart(title string, labels []string, data []float64) *Chart {
-	c := &chart.BarChart{Title: title}
-	c.XRange.Category = labels
-	blue := chart.Style{Symbol: '+', LineColor: color.NRGBA{0x00, 0x00, 0xff, 0xff}, LineWidth: 3 }
-	//green := chart.Style{Symbol: 'x', LineColor: color.NRGBA{0x00, 0xaa, 0x00, 0xff}, LineWidth: 3, FillColor: color.NRGBA{0x40, 0xff, 0x40, 0xff}}
-
-	x := make([]float64, 0, len(data))
-
-	for i := 0; i < len(data); i++ {
-		x = append(x, float64(i))
-	}
-
-	c.YRange.TicSetting.Format = func(f float64) string {
-		return humanize.Bytes(uint64(f))
-	}
-
-	c.XRange.TicSetting.Format = func(f float64) string {
-		return humanize.Bytes(uint64(f))
-	}
-
-	c.Stacked = true
-	for i := range data {
-		c.AddData("", []chart.Point{
-			chart.Point{X:x[i], Y: data[i]},
-		}, blue)
-	}
-	c.ShowVal = 2
-
-	fmt.Println(title, labels, data)
-	// Bar Chart
-	//x := []float64{0, 1, 2}
-	//europe := []float64{1, 0}
-	//africa := []float64{20, 5, 5, 5}
-	//blue := chart.Style{Symbol: '#', LineColor: color.NRGBA{0x00, 0x00, 0xff, 0xff}, LineWidth: 3, FillColor: color.NRGBA{0x40, 0x40, 0xff, 0xff}}
-	//green := chart.Style{Symbol: 'x', LineColor: color.NRGBA{0x00, 0xaa, 0x00, 0xff}, LineWidth: 3, FillColor: color.NRGBA{0x40, 0xff, 0x40, 0xff}}
-
-	//bar := chart.BarChart{Title: "Income Distribution"}
-	//bar.XRange.Category = []string{"low", "average", "high"}
-	//bar.XRange.Label = "Income category"
-	//bar.YRange.Label = "Adult population"
-	//bar.YRange.TicSetting.Format = func(f float64) string {
-	//	return fmt.Sprintf("%d%%", int(f+0.5))
-	//}
-	//bar.Stacked = true
-	//bar.Key.Pos, bar.Key.Cols = "obc", 1
-	//bar.AddDataPair("Europe", x, europe, blue)
-	//bar.AddDataPair("Africa", x, africa, green)
-	//bar.ShowVal = 1
-
-	return &Chart{
-		c:    c,
-		name: safeFilename(title + " bar chart"),
 	}
 }

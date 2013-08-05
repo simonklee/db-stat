@@ -93,7 +93,7 @@ func main() {
 		flagSinceDate   = flag.String("since", "", "limit queries from this date")
 		flagToDate      = flag.String("to", "", "limit queries to this date")
 		flagGroupBy     = flag.String("groupBy", "DAY", "DAY|WEEK|MONTH|YEAR")
-		flagCutoff		= flag.Int("cutoff", 20, "limit pie chart to include max 20 values, merge the rest into 'Other' category")
+		flagCutoff      = flag.Int("cutoff", 20, "limit pie chart to include max 20 values, merge the rest into 'Other' category")
 		flagVersion     = flag.Bool("v", false, "show version and exit")
 		flagCpuprofile  = flag.String("cpuprofile", "", "write cpu profile to file")
 	)

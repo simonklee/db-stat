@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
-	"sort"
 
 	"github.com/dustin/go-humanize"
 	_ "github.com/go-sql-driver/mysql"
@@ -35,14 +35,14 @@ func dbConnect(dns string) {
 
 func prepareStatements() {
 	var err error
-	//stmtTableSize, err = db.Prepare(`SELECT 
+	//stmtTableSize, err = db.Prepare(`SELECT
 	//	CONCAT(FORMAT(DAT/POWER(1024,pw1),2),' ',SUBSTR(units,pw1*2+1,2)) DATSIZE,
 	//	CONCAT(FORMAT(NDX/POWER(1024,pw2),2),' ',SUBSTR(units,pw2*2+1,2)) NDXSIZE,
 	//	CONCAT(FORMAT(TBL/POWER(1024,pw3),2),' ',SUBSTR(units,pw3*2+1,2)) TBLSIZE
 	//FROM
 	//(
 	//	SELECT DAT,NDX,TBL,IF(px>4,4,px) pw1,IF(py>4,4,py) pw2,IF(pz>4,4,pz) pw3
-	//	FROM 
+	//	FROM
 	//	(
 	//		SELECT data_length DAT,index_length NDX,data_length+index_length TBL,
 	//		FLOOR(LOG(IF(data_length=0,1,data_length))/LOG(1024)) px,
@@ -160,10 +160,10 @@ func tableSize(database, table string) *TableSize {
 	}
 
 	return &TableSize{
-		Name: table,
-		Data: dataSize,
+		Name:  table,
+		Data:  dataSize,
 		Index: indexSize,
-		Total: dataSize+indexSize,
+		Total: dataSize + indexSize,
 	}
 }
 
@@ -185,19 +185,18 @@ func tableStat(database string, tables []string, cutoff int) []*Chart {
 		other := data[cutoff]
 		other.Name = "Other"
 
-		for i := cutoff+1; i < len(data); i++ {
+		for i := cutoff + 1; i < len(data); i++ {
 			other.Index += data[i].Index
 			other.Data += data[i].Data
 			other.Total += data[i].Total
 		}
 
-		data = data[0:cutoff+1]
+		data = data[0 : cutoff+1]
 	}
-
 
 	vals := make([]float64, 0, len(data))
 	labels := make([]string, 0, len(data))
-	
+
 	for i := range data {
 		vals = append(vals, data[i].Total)
 		labels = append(labels, data[i].Name)

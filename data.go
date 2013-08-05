@@ -14,8 +14,8 @@ func (p Point) XErr() (float64, float64) { return math.NaN(), math.NaN() }
 func (p Point) YErr() (float64, float64) { return math.NaN(), math.NaN() }
 
 type TableSize struct {
-	Name  string
-	Total, Index, Data  float64
+	Name               string
+	Total, Index, Data float64
 }
 
 func (c TableSize) Category() string { return c.Name }
