@@ -14,7 +14,7 @@ import (
 )
 
 type ChartWriter interface {
-	Write(chart.Chart)
+	Write(*Chart)
 }
 
 func point2Chart(in []*Point) []chart.XYErrValue {
@@ -27,19 +27,14 @@ func point2Chart(in []*Point) []chart.XYErrValue {
 	return out
 }
 
-type outputType int
-
-const (
-	termOutput outputType = iota
-	imageOutput
-)
-
 type Chart struct {
 	c    chart.Chart
 	name string
 }
 
-func (c *Chart) ImageWrite() {
+type ImageWriter struct {}
+
+func (im *ImageWriter) Write(c *Chart) {
 	os.MkdirAll("data", os.ModePerm)
 
 	fp, err := os.Create(path.Join("data", c.name+".png"))
@@ -55,25 +50,15 @@ func (c *Chart) ImageWrite() {
 	//row, col := d.Cnt/d.N, d.Cnt%d.N
 	igr := imgg.AddTo(img, 0, 0, 1024, 768, color.RGBA{0xff, 0xff, 0xff, 0xff}, nil, nil)
 	c.c.Plot(igr)
-
 	png.Encode(fp, img)
 }
 
-func (c *Chart) TermWrite() {
+type TermWriter struct {}
+
+func (tm *TermWriter) Write(c *Chart) {
 	tgr := txtg.New(100, 40)
 	c.c.Plot(tgr)
 	os.Stdout.Write([]byte(tgr.String() + "\n\n\n"))
-}
-
-func (c *Chart) Write(t outputType) {
-	switch t {
-	case termOutput:
-		c.TermWrite()
-	case imageOutput:
-		c.ImageWrite()
-	default:
-		panic("Invalid output type")
-	}
 }
 
 func TimeChart(title, xlabel, ylabel string, data []*Point) *Chart {

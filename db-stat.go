@@ -37,25 +37,25 @@ func parseToFlag(v string) time.Time {
 	return d
 }
 
-func parseOutputFlag(v string) []outputType {
+func parseOutputFlag(v string) []ChartWriter {
 	words := parseWords(v)
-	out := make([]outputType, 0, len(words))
+	writers := make([]ChartWriter, 0, len(words))
 
 	for _, w := range words {
 		w = strings.ToUpper(w)
 
 		switch w {
 		case "TERM":
-			out = append(out, termOutput)
+			writers = append(writers, &TermWriter{})
 		case "PNG":
-			out = append(out, imageOutput)
+			writers = append(writers, &ImageWriter{})
 		default:
 			flag.Usage()
 			os.Exit(1)
 		}
 	}
 
-	return out
+	return writers
 }
 
 func parseGroupByFlag(v string) string {
@@ -139,11 +139,11 @@ func main() {
 		charts = tableStat(*flagDatabase, tables, ignoreTables, *flagCutoff)
 	}
 
-	outputTypes := parseOutputFlag(*flagOutput)
+	writers := parseOutputFlag(*flagOutput)
 
 	for _, c := range charts {
-		for _, t := range outputTypes {
-			c.Write(t)
+		for _, w := range writers {
+			w.Write(c)
 		}
 	}
 
