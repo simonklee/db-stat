@@ -33,6 +33,7 @@ type Chart struct {
 }
 
 type ImageWriter struct {}
+type TermWriter struct {}
 
 func (im *ImageWriter) Write(c *Chart) {
 	os.MkdirAll("data", os.ModePerm)
@@ -53,15 +54,67 @@ func (im *ImageWriter) Write(c *Chart) {
 	png.Encode(fp, img)
 }
 
-type TermWriter struct {}
-
 func (tm *TermWriter) Write(c *Chart) {
 	tgr := txtg.New(100, 40)
 	c.c.Plot(tgr)
 	os.Stdout.Write([]byte(tgr.String() + "\n\n\n"))
 }
 
-func TimeChart(title, xlabel, ylabel string, data []*Point) *Chart {
+// return a,b in solution to y = ax + b such that root mean square distance
+// between trend line and original points is minimized.
+func linearRegression(v []*Point) (a, b float64){
+	var (Sx, Sy, Sxx, Syy, Sxy float64)
+	n := float64(len(v))
+
+	for i, p := range v {
+		x, y := float64(i)+1.0, p.YVal()
+		Sx = Sx + x
+        Sy = Sy + y
+        Sxx = Sxx + x*x
+        Syy = Syy + y*y
+        Sxy = Sxy + x*y
+	}
+
+	det := Sxx * n - Sx * Sx
+    a = (Sxy * n - Sy * Sx)/det
+	b = (Sxx * Sy - Sx * Sxy)/det
+	return a,b
+}
+
+func trendline(v []*Point) []*Point {
+	a, b := linearRegression(v)
+	trend := make([]*Point, 0, len(v))
+
+	for i, p := range v {
+		y := a*float64(i) + b 
+		trend = append(trend, &Point{X: p.XVal(), Y: y})
+	}
+
+	return trend
+}
+
+// TODO
+func movingAverage(v []*Point, window int) []*Point {
+	sum := func (y []*Point) float64 {
+		v := 0.0
+		for _, p := range y {
+			println(v, p.YVal())
+			v += p.YVal()
+		}
+		return v
+	}
+
+	div := float64(window)
+
+	for i := window; i < len(v); i++ {
+		println(i-window, i)
+		println(sum(v[i-window:i]))
+		println(sum(v[i-window:i])/div)
+	}
+	return nil
+}
+
+func TimeChart(title, xlabel, ylabel string, data []*Point, drawTrend, extrapolation bool) *Chart {
 	c := &chart.ScatterChart{Title: title}
 	c.XRange.Label = xlabel
 	c.YRange.Label = ylabel
@@ -70,6 +123,12 @@ func TimeChart(title, xlabel, ylabel string, data []*Point) *Chart {
 
 	style := chart.AutoStyle(4, true)
 	c.AddDataGeneric(ylabel, point2Chart(data), chart.PlotStyleLinesPoints, style)
+
+	if drawTrend {
+		style = chart.AutoStyle(6, false)
+		linreg := trendline(data)
+		c.AddDataGeneric("Trendline", point2Chart(linreg), chart.PlotStyleLines, style)
+	}
 
 	return &Chart{
 		c:    c,

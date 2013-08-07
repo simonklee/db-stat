@@ -226,7 +226,7 @@ func tableStat(database string, tables, ignoreTables []string, cutoff int) []*Ch
 	return []*Chart{PieChart("Table Size Overview", labels, vals)}
 }
 
-func tableGrowthStat(database string, tables []string, dateColumns []string, groupBy string, since, to time.Time) []*Chart {
+func tableGrowthStat(database string, tables []string, dateColumns []string, groupBy string, since, to time.Time, drawTrend, extrapolation bool) []*Chart {
 	if len(tables) != len(dateColumns) {
 		log.Fatal(fmt.Sprintf("tables count %d != datetime columns count %d", len(tables), len(dateColumns)))
 	}
@@ -246,7 +246,7 @@ func tableGrowthStat(database string, tables []string, dateColumns []string, gro
 		ylabel := fmt.Sprintf("%s: Created Per %s", table, strings.Title(strings.ToLower(groupBy)))
 		xlabel := fmt.Sprintf("total in period: %s", humanize.Comma(int64(total)))
 
-		charts = append(charts, TimeChart(ylabel, xlabel, ylabel, data))
+		charts = append(charts, TimeChart(ylabel, xlabel, ylabel, data, drawTrend, extrapolation))
 	}
 
 	return charts
