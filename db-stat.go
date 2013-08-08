@@ -83,22 +83,22 @@ func parseWords(raw string) []string {
 
 func main() {
 	var (
-		flagHelp        = flag.Bool("h", false, "this help")
-		flagGrowth      = flag.Bool("growth", false, "display table growth")
-		flagDns         = flag.String("dns", "kogama:kogama@tcp(localhost:3306)/kogama", "Data Source Name")
-		flagDatabase    = flag.String("database", "kogama", "database name")
-		flagTables      = flag.String("tables", "", "comma separated list of tables")
-		flagIgnoreTables= flag.String("ignore-tables", "", "comma separated list of tables to not consider")
-		flagOutput      = flag.String("output", "term", "comma separated list of output types. Options; png, term")
-		flagDateColumns = flag.String("dateColumns", "", "comma separated list of dateColumns")
-		flagSinceDate   = flag.String("since", "", "limit queries from this date")
-		flagToDate      = flag.String("to", "", "limit queries to this date")
-		flagDrawTrend   = flag.Bool("trendline", true, "draw trendline")
+		flagHelp          = flag.Bool("h", false, "this help")
+		flagGrowth        = flag.Bool("growth", false, "display table growth")
+		flagDns           = flag.String("dns", "kogama:kogama@tcp(localhost:3306)/kogama", "Data Source Name")
+		flagDatabase      = flag.String("database", "kogama", "database name")
+		flagTables        = flag.String("tables", "", "comma separated list of tables")
+		flagIgnoreTables  = flag.String("ignore-tables", "", "comma separated list of tables to not consider")
+		flagOutput        = flag.String("output", "term", "comma separated list of output types. Options; png, term")
+		flagDateColumns   = flag.String("dateColumns", "", "comma separated list of dateColumns")
+		flagSinceDate     = flag.String("since", "", "limit queries from this date")
+		flagToDate        = flag.String("to", "", "limit queries to this date")
+		flagDrawTrend     = flag.Bool("trendline", true, "draw trendline")
 		flagExtrapolation = flag.Bool("extrapolation", false, "draw extrapolated trendline")
-		flagGroupBy     = flag.String("groupBy", "DAY", "DAY|WEEK|MONTH|YEAR")
-		flagCutoff      = flag.Int("cutoff", 20, "limit pie chart to include max 20 values, merge the rest into 'Other' category")
-		flagVersion     = flag.Bool("v", false, "show version and exit")
-		flagCpuprofile  = flag.String("cpuprofile", "", "write cpu profile to file")
+		flagGroupBy       = flag.String("groupBy", "DAY", "DAY|WEEK|MONTH|YEAR")
+		flagCutoff        = flag.Int("cutoff", 20, "limit pie chart to include max 20 values, merge the rest into 'Other' category")
+		flagVersion       = flag.Bool("v", false, "show version and exit")
+		flagCpuprofile    = flag.String("cpuprofile", "", "write cpu profile to file")
 	)
 
 	flag.Usage = usage
@@ -136,7 +136,7 @@ func main() {
 	to := parseToFlag(*flagToDate)
 
 	if *flagGrowth {
-		charts = tableGrowthStat(*flagDatabase, tables, dateColumns, groupBy, since, to, *flagDrawTrend, *flagExtrapolation)
+		charts = tableGrowthStat(*flagDatabase, tables, dateColumns, groupBy, since, to, *flagDrawTrend, *flagExtrapolation, true)
 	} else {
 		charts = tableStat(*flagDatabase, tables, ignoreTables, *flagCutoff)
 	}

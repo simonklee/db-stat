@@ -32,8 +32,8 @@ type Chart struct {
 	name string
 }
 
-type ImageWriter struct {}
-type TermWriter struct {}
+type ImageWriter struct{}
+type TermWriter struct{}
 
 func (im *ImageWriter) Write(c *Chart) {
 	os.MkdirAll("data", os.ModePerm)
@@ -62,23 +62,25 @@ func (tm *TermWriter) Write(c *Chart) {
 
 // return a,b in solution to y = ax + b such that root mean square distance
 // between trend line and original points is minimized.
-func linearRegression(v []*Point) (a, b float64){
-	var (Sx, Sy, Sxx, Syy, Sxy float64)
+func linearRegression(v []*Point) (a, b float64) {
+	var (
+		Sx, Sy, Sxx, Syy, Sxy float64
+	)
 	n := float64(len(v))
 
 	for i, p := range v {
 		x, y := float64(i)+1.0, p.YVal()
 		Sx = Sx + x
-        Sy = Sy + y
-        Sxx = Sxx + x*x
-        Syy = Syy + y*y
-        Sxy = Sxy + x*y
+		Sy = Sy + y
+		Sxx = Sxx + x*x
+		Syy = Syy + y*y
+		Sxy = Sxy + x*y
 	}
 
-	det := Sxx * n - Sx * Sx
-    a = (Sxy * n - Sy * Sx)/det
-	b = (Sxx * Sy - Sx * Sxy)/det
-	return a,b
+	det := Sxx*n - Sx*Sx
+	a = (Sxy*n - Sy*Sx) / det
+	b = (Sxx*Sy - Sx*Sxy) / det
+	return a, b
 }
 
 func trendline(v []*Point) []*Point {
@@ -86,35 +88,55 @@ func trendline(v []*Point) []*Point {
 	trend := make([]*Point, 0, len(v))
 
 	for i, p := range v {
-		y := a*float64(i) + b 
+		y := a*float64(i) + b
 		trend = append(trend, &Point{X: p.XVal(), Y: y})
 	}
 
 	return trend
 }
 
-// TODO
 func movingAverage(v []*Point, window int) []*Point {
-	sum := func (y []*Point) float64 {
-		v := 0.0
+	sum := func(y []*Point) (float64, float64) {
+		xa, ya := 0.0, 0.0
 		for _, p := range y {
-			println(v, p.YVal())
-			v += p.YVal()
+			ya += p.YVal()
+			xa += p.XVal()
 		}
-		return v
+		return xa, ya
+	}
+
+	if window < 1 {
+		panic("window must be 1 or larger")
 	}
 
 	div := float64(window)
+	n := len(v)
+	res := make([]*Point, 0, n)
 
-	for i := window; i < len(v); i++ {
-		println(i-window, i)
-		println(sum(v[i-window:i]))
-		println(sum(v[i-window:i])/div)
+	if window > n {
+		// this will simply return the same output
+		window = n
 	}
-	return nil
+
+	for i := window; i < n+1; i++ {
+		x, y := sum(v[i-window : i])
+		x /= div
+		y /= div
+
+		// not quite correct but good enough.
+		// should stretch the curve from v[0].x to v[n-1].x
+		if i == window {
+			x = v[0].XVal()
+		} else if i == n {
+			x = v[n-1].XVal()
+		}
+		res = append(res, &Point{Y: y, X: x})
+	}
+
+	return res
 }
 
-func TimeChart(title, xlabel, ylabel string, data []*Point, drawTrend, extrapolation bool) *Chart {
+func TimeChart(title, xlabel, ylabel string, data []*Point, drawTrend, extrapolation, drawMovingAvg bool) *Chart {
 	c := &chart.ScatterChart{Title: title}
 	c.XRange.Label = xlabel
 	c.YRange.Label = ylabel
@@ -124,10 +146,25 @@ func TimeChart(title, xlabel, ylabel string, data []*Point, drawTrend, extrapola
 	style := chart.AutoStyle(4, true)
 	c.AddDataGeneric(ylabel, point2Chart(data), chart.PlotStyleLinesPoints, style)
 
+	if drawMovingAvg {
+		window := 5
+
+		if len(data) < window {
+			window = (len(data) / 5)
+			if window < 1 {
+				window = 1
+			}
+		}
+
+		mav := movingAverage(data, window)
+		style = chart.AutoStyle(1, false)
+		c.AddDataGeneric("Moving Average", point2Chart(mav), chart.PlotStyleLines, style)
+	}
+
 	if drawTrend {
 		style = chart.AutoStyle(6, false)
 		linreg := trendline(data)
-		c.AddDataGeneric("Trendline", point2Chart(linreg), chart.PlotStyleLines, style)
+		c.AddDataGeneric("Linear Regression", point2Chart(linreg), chart.PlotStyleLines, style)
 	}
 
 	return &Chart{
